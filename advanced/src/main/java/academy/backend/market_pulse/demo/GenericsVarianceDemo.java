@@ -2,6 +2,7 @@ package academy.backend.market_pulse.demo;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * Инвариантность generics в сравнении с ковариантностью массивов, bounded type parameter,
@@ -172,9 +173,11 @@ public class GenericsVarianceDemo {
      * ниже не скомпилировался бы: {@code List<Object>} и {@code List<Middle>} не находятся в
      * отношении подтипирования — та же инвариантность, с которой начали этот демо-класс.
      */
-    private static <T> void copy(List<? super T> dest, List<? extends T> src) {
+    private static <T> void copy(List<? super T> dest, List<? extends T> src, Predicate<? super T> predicate) {
         for (int i = 0; i < src.size(); i++) {
-            dest.set(i, src.get(i));
+            if (predicate.test(src.get(i))) {
+                dest.set(i, src.get(i));
+            }
         }
     }
 
@@ -182,7 +185,7 @@ public class GenericsVarianceDemo {
         List<Middle> middles = List.of(new Middle(), new Child());
         List<Object> destination = new ArrayList<>(List.of(new Object(), new Object()));
 
-        copy(destination, middles); // компилируется и работает
+        copy(destination, middles, __ -> true); // компилируется и работает
         System.out.println("Скопировали List<Middle> в List<Object>: " + destination);
     }
 }

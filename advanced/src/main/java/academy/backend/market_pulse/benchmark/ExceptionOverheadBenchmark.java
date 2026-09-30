@@ -88,6 +88,10 @@ public class ExceptionOverheadBenchmark {
 
     private void validateOrThrow(String type) {
         if (!isKnown(type)) {
+            // NOTICE: почему fillInStackTrace - публичный?
+            // - Manual Refresh and Reuse
+            // - Performance Tuning (Overriding)
+            // - Custom Exception Pooling
             throw new IllegalArgumentException("Unknown instrument type: " + type);
         }
     }
