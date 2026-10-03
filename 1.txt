@@ -1,0 +1,3 @@
+Stock(SBER)
+Bond(OFZ26233)
+Etf(FXUS)

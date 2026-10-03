@@ -6,4 +6,8 @@ package academy.backend.market_pulse.exception;
  * TODO: требует реализации и применения!
  */
 public class InstrumentSaveException extends RuntimeException {
+
+    public InstrumentSaveException(String message) {
+        super(message);
+    }
 }

@@ -1,8 +1,13 @@
 package academy.backend.market_pulse.cli;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.concurrent.Callable;
 
+import academy.backend.market_pulse.exception.InstrumentSaveException;
 import academy.backend.market_pulse.repository.InstrumentRepository;
+import io.vavr.control.Try;
 import lombok.RequiredArgsConstructor;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Parameters;
@@ -26,6 +31,39 @@ public class SaveCommand implements Callable<Integer> {
     // TODO №4: реализовать с помощью Vavr.Try
     @Override
     public Integer call() {
-        throw new UnsupportedOperationException("save: реализовать через try-with-resources");
+        return Try.of(this::saveToFile)
+                .onSuccess((code) -> System.out.println("Успешно сохранено, код - " + code))
+                .onFailure(InstrumentSaveException.class, e -> System.out.println("Ошибка сохранения: " + e.getMessage()))
+                .getOrElse(1);
+    }
+
+    private int saveToFile() {
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(path))) {
+            for (var instrument : repository) {
+                writer.write(instrument.toString() + "\n");
+            }
+        } catch (IOException e) {
+            throw new InstrumentSaveException("Не удалось сохранить данные в файл");
+        }
+
+        return 0;
+    }
+
+    private int saveToFileWithPain() {
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(path))) {
+            repository.forEach(instrument -> {
+                try {
+                    writer.write(instrument.toString() + "\n");
+                } catch (IOException e) {
+                    throw new InstrumentSaveException("Не удалось сохранить инструмент: " + instrument);
+                }
+            });
+        } catch (IOException e) {
+            throw new InstrumentSaveException("Не удалось сохранить данные в файл");
+        }
+
+        return 0;
     }
 }
