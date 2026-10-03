@@ -49,4 +49,21 @@ public class SaveCommand implements Callable<Integer> {
 
         return 0;
     }
+
+    private int saveToFileWithPain() {
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(path))) {
+            repository.forEach(instrument -> {
+                try {
+                    writer.write(instrument.toString() + "\n");
+                } catch (IOException e) {
+                    throw new InstrumentSaveException("Не удалось сохранить инструмент: " + instrument);
+                }
+            });
+        } catch (IOException e) {
+            throw new InstrumentSaveException("Не удалось сохранить данные в файл");
+        }
+
+        return 0;
+    }
 }
