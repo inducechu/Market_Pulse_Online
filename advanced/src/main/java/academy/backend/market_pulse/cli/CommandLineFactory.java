@@ -18,6 +18,7 @@ public final class CommandLineFactory {
         //  (если вообще) ловит только свои ожидаемые типы. Аналог такой точки в Spring —
         //  @ControllerAdvice/@ExceptionHandler; здесь её пока нет, это открытый вопрос на будущее.
         return new CommandLine(new MarketPulseCli())
+                .addSubcommand(new PortfolioValueCommand(config::createPortfolioMarket))
                 .addSubcommand(new AddCommand(config.getInstrumentRepository()))
                 .addSubcommand(new ListCommand(config.getInstrumentRepository()))
                 .addSubcommand(new SaveCommand(config.getInstrumentRepository()))

@@ -1,6 +1,8 @@
 package academy.backend.market_pulse.config;
 
 import academy.backend.market_pulse.client.TInvestApiClient;
+import academy.backend.market_pulse.portfolio.PortfolioHttpClient;
+import academy.backend.market_pulse.portfolio.PortfolioMarket;
 import academy.backend.market_pulse.client.TInvestClientMode;
 import academy.backend.market_pulse.dictionary.InstrumentType;
 import academy.backend.market_pulse.factory.InstrumentFactories;
@@ -26,6 +28,7 @@ import academy.backend.market_pulse.stat.impl.WindowedAveragePriceStat;
 import lombok.Getter;
 
 import java.math.BigDecimal;
+import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +40,8 @@ import java.util.Map;
  */
 @Getter
 public class AppConfig {
+    private static final String INVALID_PORTFOLIO_URL =
+            "Неверный адрес в MARKET_PULSE_PORTFOLIO_URL. Укажите URL вида http://127.0.0.1:1081.";
 
     private final InstrumentRepository instrumentRepository;
     private final Watchlist watchlist;
@@ -134,5 +139,28 @@ public class AppConfig {
                 new BigDecimal("6950.00"), new BigDecimal("7020.00"), new BigDecimal("6990.00"),
                 new BigDecimal("7080.00"), new BigDecimal("7100.00"), new BigDecimal("7150.00")));
         return history;
+    }
+
+    /**
+     * Создаёт портфельный HTTP-клиент при выполнении команды оценки.
+     */
+    public PortfolioMarket createPortfolioMarket() {
+        String portfolioUrl = System.getenv("MARKET_PULSE_PORTFOLIO_URL");
+        if (portfolioUrl == null || portfolioUrl.isBlank()) {
+            portfolioUrl = "http://127.0.0.1:1081";
+        }
+
+        URI address;
+        try {
+            address = URI.create(portfolioUrl);
+        } catch (IllegalArgumentException error) {
+            throw new IllegalArgumentException(INVALID_PORTFOLIO_URL, error);
+        }
+        String scheme = address.getScheme();
+        boolean http = "http".equalsIgnoreCase(scheme) || "https".equalsIgnoreCase(scheme);
+        if (!http || address.getHost() == null || address.getPort() == 0 || address.getPort() > 65_535) {
+            throw new IllegalArgumentException(INVALID_PORTFOLIO_URL);
+        }
+        return new PortfolioHttpClient(address);
     }
 }

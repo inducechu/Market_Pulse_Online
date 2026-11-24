@@ -377,3 +377,44 @@ java -cp <classpath> academy.backend.market_pulse.demo.concurrency.ForkJoinQuote
 [шпаргалке семинара 11](materials/seminar11/Порядок%20показа%20кода.md),
 а этапы самостоятельного рефакторинга подписок — в [практике](materials/seminar11/Практика.md).
 Сохранённые результаты сравнения Map находятся в [отчёте JMH](materials/seminar11/JMH%20—%20результаты.md).
+
+
+## Семинар 12: оценка портфеля
+
+JDK 25. Команда `portfolio-value` оценивает независимые учебные портфели по HTTP, отдельно от watchlist и подписок. При отсутствии настройки `MARKET_PULSE_PORTFOLIO_URL` используется `http://127.0.0.1:1081`.
+
+Сначала собрать приложение и classpath для тестового mock:
+
+```bash
+mvn -pl advanced -am test-compile
+mvn -pl advanced dependency:build-classpath -Dmdep.includeScope=test -Dmdep.outputFile=target/test-classpath.txt
+portfolio_cp="advanced/target/classes:advanced/target/test-classes:$(cat advanced/target/test-classpath.txt)"
+java -cp "$portfolio_cp" academy.backend.market_pulse.portfolio.PortfolioMock
+```
+
+Mock работает до остановки процесса. В другом терминале повторить присваивание `portfolio_cp` и запустить:
+
+```bash
+java -cp "$portfolio_cp" academy.backend.market_pulse.Main portfolio-value P1 P2 --engine FUTURE --trace
+java -cp "$portfolio_cp" academy.backend.market_pulse.Main portfolio-value P1 P2 --engine CF --trace
+java -cp "$portfolio_cp" academy.backend.market_pulse.Main portfolio-value P1 P2 --engine VT --quote-limit 1 --trace
+```
+
+Все варианты дают `2100 RUB` на портфель. Default engine - `VT`, валюта - `RUB`, квота - 2. `--quote-limit` ограничивает одновременно выполняемые запросы котировок в VT-режиме. `--trace` печатает стадии и потоки; `--currency` задаёт валюту оценки.
+
+Для демонстрации ошибки остановить mock и запустить его с флагом:
+
+```bash
+java -cp "$portfolio_cp" academy.backend.market_pulse.portfolio.PortfolioMock --quotes-503
+java -cp "$portfolio_cp" academy.backend.market_pulse.Main portfolio-value P1 --engine CF --quote-failure BACKUP_ON_503 --trace
+```
+
+Резерв возвращает `2460 RUB`. Без `BACKUP_ON_503` команда сообщает ошибку. Дополнительные сценарии mock: `--quotes-500`, `--rates-500`, портфель `EMPTY`, `NO-PRICE`, `NO-FX`. `--quotes-500` и `--rates-500` можно совместить, чтобы увидеть обе причины отказа. Для другого порта передать число первым аргументом mock и задать `MARKET_PULSE_PORTFOLIO_URL` при запуске приложения.
+
+```bash
+mvn -pl advanced -Dtest=PortfolioEngineTest,PortfolioHttpTest,PortfolioValueCommandTest,CfPortfolioDemosTest,PortfolioFailureDemoTest,OneCarrierTest,PracticeReferenceTest test
+# Незавершённая карточка: до реализации TODO ожидается ошибка проверки.
+mvn -pl advanced '-Dtest=PracticeStarterChecks#z1' test
+```
+
+[Порядок показа и диаграммы](materials/seminar12/Порядок%20показа%20кода.md), [демо одного carrier thread](materials/seminar12/Демо%20—%20виртуальные%20потоки.md), [карточки практики](materials/seminar12/Обзор%20практики.md).
