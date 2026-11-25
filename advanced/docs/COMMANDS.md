@@ -414,7 +414,7 @@ java -Djdk.virtualThreadScheduler.parallelism=1 -Djdk.virtualThreadScheduler.max
 java -XX:ActiveProcessorCount=4 -cp advanced/target/classes "$demo.VirtualThreadThroughputDemo"
 ```
 
-В `CallableCallbackDemo` проследите, на каком потоке выполняется callback при прямом вызове и после `pool.submit(callback)`. В `PortfolioExceptionsDemo` сравните три обработчика исключений. В `OneCarrierNetworkDemo` оставьте ответы закрытыми до появления обоих запросов. В `VirtualThreadThroughputDemo` сравните задачи в секунду на вычислениях и на HTTP.
+В `CallableCallbackDemo` проследите два вложенных callback. Первый ставит `processQuotes` в очередь того же executor, второй выводит `900 RUB` после обработки котировок. В `PortfolioExceptionsDemo` сравните три обработчика исключений. В `OneCarrierNetworkDemo` оставьте ответы закрытыми до появления обоих запросов. В `VirtualThreadThroughputDemo` сравните задачи в секунду на вычислениях и на HTTP.
 
 ```bash
 mvn -pl advanced -Dtest=PortfolioEngineTest,PortfolioHttpTest,PortfolioValueCommandTest,OneCarrierTest test
