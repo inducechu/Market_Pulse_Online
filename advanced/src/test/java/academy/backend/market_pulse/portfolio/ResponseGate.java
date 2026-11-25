@@ -30,7 +30,6 @@ final class ResponseGate implements ResponseDefinitionTransformerV2 {
 
     @Override
     public ResponseDefinition transform(ServeEvent event) {
-        System.out.println("server received " + event.getRequest().getUrl() + " gate=" + name);
         arrived.countDown();
         try {
             if (!release.await(7, TimeUnit.SECONDS)) {
@@ -40,7 +39,6 @@ final class ResponseGate implements ResponseDefinitionTransformerV2 {
             Thread.currentThread().interrupt();
             return new ResponseDefinition(500, "Не дождались освобождения ответа");
         }
-        System.out.println("server releases " + name);
         return event.getResponseDefinition();
     }
 

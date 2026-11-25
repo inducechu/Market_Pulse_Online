@@ -64,5 +64,48 @@
         "value": 300
       }
     }
+  },
+  {
+    "httpRequest": {"method":"GET","path":"/v1/portfolios/(P1|P2)/positions"},
+    "httpResponse": {"statusCode":200,"body":{"type":"JSON","json":[
+      {"ticker":"T","quantity":3,"currency":"RUB"},
+      {"ticker":"AAPL","quantity":2,"currency":"USD"}
+    ]}}
+  },
+  {
+    "httpRequest": {"method":"GET","path":"/v1/portfolios/EMPTY/positions"},
+    "httpResponse": {"statusCode":200,"body":{"type":"JSON","json":[]}}
+  },
+  {
+    "httpRequest": {"method":"GET","path":"/v1/portfolios/FAIL-QUOTES/positions"},
+    "httpResponse": {"statusCode":200,"body":{"type":"JSON","json":[{"ticker":"BAD","quantity":1,"currency":"USD"}]}}
+  },
+  {
+    "httpRequest": {"method":"GET","path":"/v1/portfolios/FAIL-FX/positions"},
+    "httpResponse": {"statusCode":200,"body":{"type":"JSON","json":[{"ticker":"AAPL","quantity":1,"currency":"EUR"}]}}
+  },
+  {
+    "httpRequest": {"method":"GET","path":"/v1/portfolios/FAIL-BOTH/positions"},
+    "httpResponse": {"statusCode":200,"body":{"type":"JSON","json":[{"ticker":"BAD","quantity":1,"currency":"EUR"}]}}
+  },
+  {
+    "httpRequest": {"method":"GET","path":"/v1/quotes","queryStringParameters":{"tickers":["BAD"]}},
+    "httpResponse": {"statusCode":500,"body":"quote service unavailable"}
+  },
+  {
+    "httpRequest": {"method":"GET","path":"/v1/quotes","queryStringParameters":{"tickers":["AAPL(,T)?"]}},
+    "httpResponse": {"statusCode":200,"body":{"type":"JSON","json":{"AAPL":10,"T":100}}}
+  },
+  {
+    "httpRequest": {"method":"GET","path":"/v1/fx","queryStringParameters":{"from":["USD"],"to":["RUB"]}},
+    "httpResponse": {"statusCode":200,"body":{"type":"JSON","json":{"USD":90}}}
+  },
+  {
+    "httpRequest": {"method":"GET","path":"/v1/fx","queryStringParameters":{"from":["RUB"],"to":["USD"]}},
+    "httpResponse": {"statusCode":200,"body":{"type":"JSON","json":{"RUB":0.01111111}}}
+  },
+  {
+    "httpRequest": {"method":"GET","path":"/v1/fx","queryStringParameters":{"from":["EUR"],"to":["RUB"]}},
+    "httpResponse": {"statusCode":500,"body":"exchange rate service unavailable"}
   }
 ]

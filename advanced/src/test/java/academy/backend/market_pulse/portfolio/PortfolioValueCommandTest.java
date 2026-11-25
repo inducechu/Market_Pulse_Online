@@ -1,9 +1,8 @@
 package academy.backend.market_pulse.portfolio;
 
-import academy.backend.market_pulse.exception.PortfolioHttpStatusException;
 import academy.backend.market_pulse.cli.PortfolioValueCommand;
-import academy.backend.market_pulse.portfolio.SamplePortfolioMarket;
 import academy.backend.market_pulse.dto.portfolio.PortfolioEngine;
+import academy.backend.market_pulse.exception.PortfolioHttpStatusException;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -14,6 +13,7 @@ import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -51,19 +51,24 @@ class PortfolioValueCommandTest {
 
     @ParameterizedTest
     @EnumSource(PortfolioEngine.class)
-    void retriesQuotesOnlyWhenRequested(PortfolioEngine engine) {
+    void reportsUnavailableQuotesAndClosesMarket(PortfolioEngine engine) {
         var output = new StringWriter();
+        var closed = new AtomicBoolean();
         var command = new CommandLine(new PortfolioValueCommand(() -> new SamplePortfolioMarket() {
             @Override
             public Map<String, BigDecimal> loadQuotes(Set<String> tickers) {
                 throw new PortfolioHttpStatusException(503, "/v1/quotes");
             }
+
+            @Override
+            public void close() {
+                closed.set(true);
+            }
         })).setOut(new PrintWriter(output));
-        assertThat(command.execute("P1", "--engine", engine.name())).isEqualTo(1);
-        assertThat(output.toString()).contains("HTTP 503");
-        output.getBuffer().setLength(0);
-        assertThat(command.execute("P1", "--engine", engine.name(), "--quote-failure", "BACKUP_ON_503")).isZero();
-        assertThat(output.toString().strip()).isEqualTo("P1: 2460 RUB");
+        assertThat(command.execute("P1", "empty", "--engine", engine.name())).isEqualTo(1);
+        assertThat(output.toString().lines()).containsExactly(
+                "P1: ошибка оценки - HTTP 503 для /v1/quotes", "empty: 0 RUB");
+        assertThat(closed).isTrue();
     }
 
     @ParameterizedTest

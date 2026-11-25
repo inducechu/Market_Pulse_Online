@@ -1,7 +1,6 @@
 package academy.backend.market_pulse.dto.portfolio;
 
 import academy.backend.market_pulse.model.Currency;
-import academy.backend.market_pulse.portfolio.QuoteFailurePolicy;
 
 import java.util.List;
 import java.util.Objects;
@@ -11,7 +10,7 @@ import java.util.Objects;
  */
 public record PortfolioEvaluationOptions(
         List<String> portfolioIds, Currency currency, PortfolioEngine engine,
-        int quoteLimit, QuoteFailurePolicy quoteFailure, boolean trace) {
+        int quoteLimit, boolean trace) {
     public PortfolioEvaluationOptions {
         portfolioIds = List.copyOf(portfolioIds);
         if (portfolioIds.isEmpty() || portfolioIds.stream().anyMatch(String::isBlank)) {
@@ -22,6 +21,5 @@ public record PortfolioEvaluationOptions(
         }
         Objects.requireNonNull(currency);
         Objects.requireNonNull(engine);
-        Objects.requireNonNull(quoteFailure);
     }
 }

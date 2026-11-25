@@ -1,9 +1,9 @@
 package academy.backend.market_pulse.config;
 
+import academy.backend.market_pulse.client.PortfolioMarket;
 import academy.backend.market_pulse.client.TInvestApiClient;
-import academy.backend.market_pulse.portfolio.PortfolioHttpClient;
-import academy.backend.market_pulse.portfolio.PortfolioMarket;
 import academy.backend.market_pulse.client.TInvestClientMode;
+import academy.backend.market_pulse.client.impl.PortfolioHttpClient;
 import academy.backend.market_pulse.dictionary.InstrumentType;
 import academy.backend.market_pulse.factory.InstrumentFactories;
 import academy.backend.market_pulse.model.Currency;

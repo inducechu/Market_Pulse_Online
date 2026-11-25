@@ -381,40 +381,45 @@ java -cp <classpath> academy.backend.market_pulse.demo.concurrency.ForkJoinQuote
 
 ## Семинар 12: оценка портфеля
 
-JDK 25. Команда `portfolio-value` оценивает независимые учебные портфели по HTTP, отдельно от watchlist и подписок. При отсутствии настройки `MARKET_PULSE_PORTFOLIO_URL` используется `http://127.0.0.1:1081`.
-
-Сначала собрать приложение и classpath для тестового mock:
+Команды выполняются из корня проекта на JDK 25. Для CLI загрузите в локальный MockServer данные портфелей. Команда `up` использует конфигурацию из этой ветки. Если контейнер уже работает с материалами другого семинара, перечитать файл можно командой `docker compose -f docker/mockserver/docker-compose.yml restart`.
 
 ```bash
-mvn -pl advanced -am test-compile
-mvn -pl advanced dependency:build-classpath -Dmdep.includeScope=test -Dmdep.outputFile=target/test-classpath.txt
-portfolio_cp="advanced/target/classes:advanced/target/test-classes:$(cat advanced/target/test-classpath.txt)"
-java -cp "$portfolio_cp" academy.backend.market_pulse.portfolio.PortfolioMock
+docker compose -f docker/mockserver/docker-compose.yml up -d
+export MARKET_PULSE_PORTFOLIO_URL=http://127.0.0.1:1080
+mvn -pl advanced -am compile
+mvn -pl advanced dependency:build-classpath -DincludeScope=runtime -Dmdep.outputFile=target/runtime-classpath.txt
+portfolio_cp="advanced/target/classes:$(cat advanced/target/runtime-classpath.txt)"
 ```
 
-Mock работает до остановки процесса. В другом терминале повторить присваивание `portfolio_cp` и запустить:
+В IDE откройте `academy.backend.market_pulse.Main`, укажите ту же переменную окружения и передайте аргументы начиная с `portfolio-value`. Без переменной приложение использует порт 1081.
 
 ```bash
-java -cp "$portfolio_cp" academy.backend.market_pulse.Main portfolio-value P1 P2 --engine FUTURE --trace
-java -cp "$portfolio_cp" academy.backend.market_pulse.Main portfolio-value P1 P2 --engine CF --trace
+java -cp "$portfolio_cp" academy.backend.market_pulse.Main portfolio-value P1 P2 --engine FUTURE --quote-limit 1 --trace
+java -cp "$portfolio_cp" academy.backend.market_pulse.Main portfolio-value P1 P2 --engine CF --quote-limit 1 --trace
 java -cp "$portfolio_cp" academy.backend.market_pulse.Main portfolio-value P1 P2 --engine VT --quote-limit 1 --trace
+java -cp "$portfolio_cp" academy.backend.market_pulse.Main portfolio-value FAIL-QUOTES FAIL-FX FAIL-BOTH P2 --engine CF --trace
 ```
 
-Все варианты дают `2100 RUB` на портфель. Default engine - `VT`, валюта - `RUB`, квота - 2. `--quote-limit` ограничивает одновременно выполняемые запросы котировок в VT-режиме. `--trace` печатает стадии и потоки; `--currency` задаёт валюту оценки.
+P1 и P2 стоят по 2100 RUB. Порядок событий в `--trace` может меняться, готовые результаты идут в порядке ввода. У портфелей `FAIL-QUOTES`, `FAIL-FX` и `FAIL-BOTH` соответствующие сервисы отвечают HTTP 500. В том же запуске P2 успешно оценивается. Квота ограничивает одновременные запросы котировок во всех трёх режимах. По умолчанию используются VT, рубли и два разрешения.
 
-Для демонстрации ошибки остановить mock и запустить его с флагом:
+### Демонстрации из IDE или терминала
+
+Для запуска демо достаточно компиляции `advanced` и JDK 25. Обе сетевые демонстрации сами поднимают HTTP-сервер на свободном порту.
 
 ```bash
-java -cp "$portfolio_cp" academy.backend.market_pulse.portfolio.PortfolioMock --quotes-503
-java -cp "$portfolio_cp" academy.backend.market_pulse.Main portfolio-value P1 --engine CF --quote-failure BACKUP_ON_503 --trace
+demo=academy.backend.market_pulse.demo.concurrency
+java -cp advanced/target/classes "$demo.CallableCallbackDemo"
+java -cp advanced/target/classes "$demo.PortfolioExceptionsDemo"
+java -Djdk.virtualThreadScheduler.parallelism=1 -Djdk.virtualThreadScheduler.maxPoolSize=1 -cp advanced/target/classes "$demo.OneCarrierNetworkDemo"
+java -XX:ActiveProcessorCount=4 -cp advanced/target/classes "$demo.VirtualThreadThroughputDemo"
 ```
 
-Резерв возвращает `2460 RUB`. Без `BACKUP_ON_503` команда сообщает ошибку. Дополнительные сценарии mock: `--quotes-500`, `--rates-500`, портфель `EMPTY`, `NO-PRICE`, `NO-FX`. `--quotes-500` и `--rates-500` можно совместить, чтобы увидеть обе причины отказа. Для другого порта передать число первым аргументом mock и задать `MARKET_PULSE_PORTFOLIO_URL` при запуске приложения.
+В `CallableCallbackDemo` проследите, на каком потоке выполняется callback при прямом вызове и после `pool.submit(callback)`. В `PortfolioExceptionsDemo` сравните три обработчика исключений. В `OneCarrierNetworkDemo` оставьте ответы закрытыми до появления обоих запросов. В `VirtualThreadThroughputDemo` сравните задачи в секунду на вычислениях и на HTTP.
 
 ```bash
-mvn -pl advanced -Dtest=PortfolioEngineTest,PortfolioHttpTest,PortfolioValueCommandTest,CfPortfolioDemosTest,PortfolioFailureDemoTest,OneCarrierTest,PracticeReferenceTest test
-# Незавершённая карточка: до реализации TODO ожидается ошибка проверки.
-mvn -pl advanced '-Dtest=PracticeStarterChecks#z1' test
+mvn -pl advanced -Dtest=PortfolioEngineTest,PortfolioHttpTest,PortfolioValueCommandTest,OneCarrierTest test
+# Самопроверка одной учебной карточки. До исправления заготовки тест показывает дефект.
+mvn -pl advanced -Dtest=ViewCounterCheck test
 ```
 
-[Порядок показа и диаграммы](materials/seminar12/Порядок%20показа%20кода.md), [демо одного carrier thread](materials/seminar12/Демо%20—%20виртуальные%20потоки.md), [карточки практики](materials/seminar12/Обзор%20практики.md).
+[План семинара](materials/seminar12/План%20семинара.md), [точки останова и дамп потоков](materials/seminar12/Демо%20—%20виртуальные%20потоки.md), [четыре карточки практики](materials/seminar12/Обзор%20практики.md).

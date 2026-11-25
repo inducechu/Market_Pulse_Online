@@ -1,6 +1,9 @@
 package academy.backend.market_pulse.portfolio;
 
 import academy.backend.market_pulse.dto.portfolio.PortfolioEngine;
+import academy.backend.market_pulse.client.impl.PortfolioHttpClient;
+import academy.backend.market_pulse.dto.portfolio.PortfolioEvent;
+import academy.backend.market_pulse.service.portfolio.PortfolioServiceFactory;
 
 import jdk.management.VirtualThreadSchedulerMXBean;
 
@@ -13,14 +16,9 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import static academy.backend.market_pulse.model.Currency.RUB;
-
-import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
-
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Клиентская JVM теста, ограниченная одним carrier thread.
@@ -28,14 +26,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 public final class OneCarrierClient {
     public static void main(String[] args) throws Exception {
         var startP2 = new CompletableFuture<Void>();
-        var market = new PortfolioHttpClient(URI.create(args[0]));
-        var valuation = new PortfolioValuation(market, event -> {
+        Consumer<PortfolioEvent> trace = event -> {
             if (event.portfolioId().equals("P2") && event.stage().equals("positions:start")) {
                 startP2.join();
             }
             System.out.println(event);
-        });
-        try (var service = PortfolioServiceFactory.create(PortfolioEngine.VT, valuation, 2)) {
+        };
+        try (var market = new PortfolioHttpClient(URI.create(args[0]));
+             var service = PortfolioServiceFactory.create(PortfolioEngine.VT, market, 2, trace)) {
             var evaluation = new FutureTask<>(() -> service.evaluatePortfolios(List.of("P1", "P2"), RUB));
             Thread.ofPlatform().start(evaluation);
             try (var stdin = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8))) {

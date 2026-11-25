@@ -1,7 +1,7 @@
 package academy.backend.market_pulse.exception;
 
 /**
- * HTTP-статус источника портфельных данных для диагностики и выбора резервного поставщика.
+ * HTTP-статус и адрес запроса, который не удалось выполнить.
  */
 public final class PortfolioHttpStatusException extends RuntimeException {
     private final int status;

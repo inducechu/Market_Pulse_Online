@@ -1,12 +1,10 @@
 package academy.backend.market_pulse.cli;
 
-import academy.backend.market_pulse.model.Currency;
-import academy.backend.market_pulse.dto.portfolio.PortfolioEvaluationOptions;
-import academy.backend.market_pulse.portfolio.PortfolioMarket;
-import academy.backend.market_pulse.portfolio.QuoteFailurePolicy;
+import academy.backend.market_pulse.client.PortfolioMarket;
 import academy.backend.market_pulse.dto.portfolio.PortfolioEngine;
-import academy.backend.market_pulse.portfolio.PortfolioServiceFactory;
-import academy.backend.market_pulse.portfolio.PortfolioValuation;
+import academy.backend.market_pulse.dto.portfolio.PortfolioEvaluationOptions;
+import academy.backend.market_pulse.model.Currency;
+import academy.backend.market_pulse.service.portfolio.PortfolioServiceFactory;
 
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Model.CommandSpec;
@@ -35,12 +33,8 @@ public final class PortfolioValueCommand implements Callable<Integer> {
     @Option(names = "--engine", defaultValue = "VT", description = "Оркестрация: ${COMPLETION-CANDIDATES}")
     private PortfolioEngine engine;
 
-    @Option(names = "--quote-limit", defaultValue = "2", description = "Квота одновременных запросов котировок для VT")
+    @Option(names = "--quote-limit", defaultValue = "2", description = "Максимум одновременных запросов котировок")
     private int quoteLimit;
-
-    @Option(names = "--quote-failure", defaultValue = "REPORT_ERROR",
-            description = "При сбое котировок: ${COMPLETION-CANDIDATES}")
-    private QuoteFailurePolicy quoteFailure;
 
     @Option(names = "--trace", description = "Показать стадии, имена потоков и признак виртуального потока")
     private boolean trace;
@@ -56,7 +50,7 @@ public final class PortfolioValueCommand implements Callable<Integer> {
     public Integer call() throws InterruptedException {
         PortfolioEvaluationOptions options;
         try {
-            options = new PortfolioEvaluationOptions(portfolioIds, currency, engine, quoteLimit, quoteFailure, trace);
+            options = new PortfolioEvaluationOptions(portfolioIds, currency, engine, quoteLimit, trace);
         } catch (IllegalArgumentException error) {
             throw new ParameterException(spec.commandLine(), error.getMessage());
         }
@@ -69,15 +63,14 @@ public final class PortfolioValueCommand implements Callable<Integer> {
         }
 
         var out = spec.commandLine().getOut();
-        var valuation = new PortfolioValuation(market, event -> {
+        try (market; var service = PortfolioServiceFactory.create(options.engine(), market, options.quoteLimit(), event -> {
             if (options.trace()) {
                 out.printf("%s %s thread=%s virtual=%s%n",
                         event.portfolioId(), event.stage(), event.thread(), event.virtual());
             }
-        });
-        try (var service = PortfolioServiceFactory.create(options.engine(), valuation, options.quoteLimit())) {
+        })) {
             int exitCode = 0;
-            for (var result : service.evaluatePortfolios(options.portfolioIds(), options.currency(), options.quoteFailure())) {
+            for (var result : service.evaluatePortfolios(options.portfolioIds(), options.currency())) {
                 if (result.error() == null) {
                     out.printf("%s: %s %s%n", result.portfolioId(), result.report().total().toPlainString(), options.currency());
                 } else {

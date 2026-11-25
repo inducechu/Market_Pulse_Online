@@ -8,8 +8,6 @@ import java.nio.file.Path;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 
-import static academy.backend.market_pulse.model.Currency.RUB;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
@@ -45,12 +43,10 @@ class OneCarrierTest {
                     stdin.write("start P2\n".getBytes(StandardCharsets.UTF_8));
                 }
                 assertThat(p2.awaitRequest()).as("P2 достиг сервера до освобождения ответа P1").isTrue();
-                System.out.println("P2 observed while P1 response is held");
                 p1.open();
 
                 assertThat(child.waitFor(10, TimeUnit.SECONDS)).isTrue();
                 String trace = output.get(2, TimeUnit.SECONDS);
-                System.out.print(trace);
                 assertThat(child.exitValue()).as(trace).isZero();
                 assertThat(trace).contains("parallelism=1 poolSize=1", "P1=2100", "P2=2100");
             } finally {

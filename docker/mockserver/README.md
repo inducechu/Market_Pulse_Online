@@ -31,7 +31,16 @@ curl -H "X-Mock-Scenario: timeout" http://localhost:1080/v1/instruments     # 10
 MARKET_PULSE_MOCK_SCENARIO=error java -cp <classpath> academy.backend.market_pulse.Main update
 ```
 
-## Остановка
+## Портфели для семинара 12
+
+Тот же контейнер отвечает на запросы позиций, котировок и курсов валют. Перед запуском
+`portfolio-value` задайте `MARKET_PULSE_PORTFOLIO_URL=http://127.0.0.1:1080`.
+Для P1 и P2 оценка в рублях составляет 2100 на каждый портфель. У EMPTY нет позиций.
+Для FAIL-QUOTES сервер вернёт HTTP 500 при загрузке цены, для FAIL-FX при загрузке курса,
+для FAIL-BOTH при обоих запросах. Сценарии можно чередовать без перезапуска.
+[Порядок запуска CLI](../../advanced/docs/COMMANDS.md#семинар-12-оценка-портфеля).
+
+## Остановка контейнера
 
 ```bash
 docker compose -f docker/mockserver/docker-compose.yml down
