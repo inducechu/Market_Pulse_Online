@@ -9,7 +9,6 @@ final class RequestCounter {
     final ConcurrentHashMap<String, Integer> counts = new ConcurrentHashMap<>();
 
     void record(String key) {
-        // TODO: исправьте потерю обновлений при одновременной записи по одному ключу.
-        counts.put(key, counts.getOrDefault(key, 0) + 1);
+        counts.merge(key, 1, Integer::sum);
     }
 }
